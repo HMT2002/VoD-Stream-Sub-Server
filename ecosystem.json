@@ -1,0 +1,21 @@
+// ecosystem.config.js or .json
+{
+    "apps": [
+        {
+            "name": "dev-app",
+            "script": "nodemon",
+            "args": "server.js",
+            "watch": [
+                "src",
+                "controllers",
+                "models",
+                "routes",
+                "utils"
+            ],
+            "ignore_watch": [
+                "node_modules",
+                "videos"
+            ]
+        }
+    ]
+}

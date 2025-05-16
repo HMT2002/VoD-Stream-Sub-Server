@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "./json-resources/*.json",
+    "./videos",
+    "./resources-storage/",
+    "./resources-storage/uploads/"
+  ]
+}
