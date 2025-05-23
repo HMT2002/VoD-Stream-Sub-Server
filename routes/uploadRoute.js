@@ -18,7 +18,7 @@ const router = express.Router();
 router
   .route('/file')
   .post(
-    uploadController.CheckFileBeforeReceive,
+    uploadController.checkFileOnReceiving,
     uploadIndividualFile,
     uploadController.ReceiveIndividualFileFromOtherNode
   );
@@ -33,12 +33,12 @@ router.route('/').post(
     console.log('Request URL:', req.originalUrl + ' - > uploadRouter -> ');
     next();
   },
-  uploadController.CheckFileBeforeReceive,
+  uploadController.checkFileOnReceiving,
   (req, res, next) => {
     console.log('uploadMultipartFileChunk -> ');
     next();
   },
   uploadMultipartFileChunk,
-  uploadController.ReceiveFileFromOtherNode
+  uploadController.receiveVideoFile
 );
 module.exports = router;

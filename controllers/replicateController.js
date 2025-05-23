@@ -15,8 +15,8 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 fluentFfmpeg.setFfmpegPath(ffmpegPath);
 const { CONSTANTS } = require('../constants/constants');
 
-async function concater(arrayChunkName, destination, filename, ext) {
-  arrayChunkName.forEach((chunkName) => {
+async function concater(chunkNames, destination, filename, ext) {
+  chunkNames.forEach((chunkName) => {
     const data = fs.readFileSync('./' + destination + chunkName);
     fs.appendFileSync('./' + destination + filename + '.' + ext, data);
     //fs.unlinkSync('./' + destination + chunkName);
@@ -194,8 +194,8 @@ async function concater(arrayChunkName, destination, filename, ext) {
 //     .run();
 // }
 
-async function concaterServer(arrayChunkName, destination, originalname) {
-  arrayChunkName.forEach((chunkName) => {
+async function concaterServer(chunkNames, destination, originalname) {
+  chunkNames.forEach((chunkName) => {
     try {
       const data = fs.readFileSync('./' + destination + chunkName);
       fs.appendFileSync('./' + destination + originalname, data);
@@ -236,19 +236,19 @@ exports.SendFileToOtherNode = catchAsync(async (req, res, next) => {
   console.log('File converted!: ' + videoPath);
   const videoSize = fs.statSync(videoPath).size;
   let chunkName = helperAPI.GenerrateRandomString(7);
-  let arrayChunkName = [];
+  let chunkNames = [];
   const CHUNK_SIZE = 30 * 1024 * 1024; // 30MB
   const totalChunks = Math.ceil(videoSize / CHUNK_SIZE);
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-    arrayChunkName.push(chunkName + '_' + chunkIndex);
+    chunkNames.push(chunkName + '_' + chunkIndex);
   }
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
     let start = chunkIndex * CHUNK_SIZE;
     let end = Math.min(start + CHUNK_SIZE, videoSize);
     const readStream = fs.createReadStream(videoPath, { start: start, end: end - 1 });
     var form = new FormData();
-    form.append('myMultilPartFileChunk', readStream);
-    form.append('arraychunkname', JSON.stringify(arrayChunkName));
+    form.append('multipartFileChunk', readStream);
+    form.append('chunknames', JSON.stringify(chunkNames));
 
     const { data: send } = await axios({
       method: 'post',
@@ -262,7 +262,7 @@ exports.SendFileToOtherNode = catchAsync(async (req, res, next) => {
         method: 'post',
         url: url + port + CONSTANTS.SUB_SERVER_REPLICATE_API + '/concate',
         data: {
-          arraychunkname: arrayChunkName,
+          chunknames: chunkNames,
           filename: filename,
         },
       });
@@ -276,7 +276,7 @@ exports.SendFileToOtherNode = catchAsync(async (req, res, next) => {
   return;
 });
 
-exports.CheckFileBeforeReceive = catchAsync(async (req, res, next) => {
+exports.checkFileOnReceiving = catchAsync(async (req, res, next) => {
   console.log('check file before receive');
   const videoPath = 'videos/' + req.body.filename;
   if (fs.existsSync(videoPath)) {
@@ -291,7 +291,7 @@ exports.CheckFileBeforeReceive = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.CheckFolderBeforeReceive = catchAsync(async (req, res, next) => {
+exports.checkFolderOnReceiving = catchAsync(async (req, res, next) => {
   console.log('check folder before receive');
   const videoPath = 'videos/' + req.body.filename;
   if (fs.existsSync(videoPath)) {
@@ -306,12 +306,12 @@ exports.CheckFolderBeforeReceive = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.ReceiveFileFromOtherNode = catchAsync(async (req, res, next) => {
+exports.receiveVideoFile = catchAsync(async (req, res, next) => {
   console.log('received');
-  let arrayChunkName = JSON.parse(req.body.arraychunkname);
+  let chunkNames = JSON.parse(req.body.chunknames);
   let destination = req.file.destination;
   let flag = true;
-  arrayChunkName.forEach((chunkName) => {
+  chunkNames.forEach((chunkName) => {
     if (!fs.existsSync(destination + chunkName)) {
       flag = false;
     }
@@ -330,12 +330,12 @@ exports.ReceiveFileFromOtherNode = catchAsync(async (req, res, next) => {
 });
 
 exports.ConcateRequest = catchAsync(async (req, res, next) => {
-  let arrayChunkName = req.body.arraychunkname;
+  let chunkNames = req.body.chunknames;
   const originalname = req.body.filename;
   const destination = 'videos/';
-  let flag = checkEnoughFile(arrayChunkName);
+  let flag = checkEnoughFile(chunkNames);
   if (flag) {
-    concaterServer(arrayChunkName, destination, originalname);
+    concaterServer(chunkNames, destination, originalname);
 
     res.status(201).json({
       message: 'concated',
@@ -347,9 +347,9 @@ exports.ConcateRequest = catchAsync(async (req, res, next) => {
   });
 });
 
-const checkEnoughFile = async (arrayChunkName) => {
+const checkEnoughFile = async (chunkNames) => {
   const destination = 'videos/';
-  arrayChunkName.forEach((chunkName) => {
+  chunkNames.forEach((chunkName) => {
     if (!fs.existsSync(destination + chunkName)) {
       return false;
     }
@@ -358,12 +358,12 @@ const checkEnoughFile = async (arrayChunkName) => {
 };
 
 exports.ConcateAndEncodeToHlsRequest = catchAsync(async (req, res, next) => {
-  let arrayChunkName = req.body.arraychunkname;
+  let chunkNames = req.body.chunknames;
   const originalname = req.body.filename;
   const destination = 'videos/';
-  let flag = checkEnoughFile(arrayChunkName);
+  let flag = checkEnoughFile(chunkNames);
   if (flag) {
-    concaterServer(arrayChunkName, destination, originalname);
+    concaterServer(chunkNames, destination, originalname);
     encodeAPI.encodeIntoHls(destination, originalname);
 
     const filePath = destination + originalname;
@@ -384,12 +384,12 @@ exports.ConcateAndEncodeToHlsRequest = catchAsync(async (req, res, next) => {
 });
 
 exports.ConcateAndEncodeToDashRequest = catchAsync(async (req, res, next) => {
-  let arrayChunkName = req.body.arraychunkname;
+  let chunkNames = req.body.chunknames;
   const originalname = req.body.filename;
   const destination = 'videos/';
-  let flag = checkEnoughFile(arrayChunkName);
+  let flag = checkEnoughFile(chunkNames);
   if (flag) {
-    concaterServer(arrayChunkName, destination, originalname);
+    concaterServer(chunkNames, destination, originalname);
     encodeAPI.encodeIntoDash(destination, originalname);
 
     const filePath = destination + originalname;
@@ -409,7 +409,7 @@ exports.ConcateAndEncodeToDashRequest = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.SendFolderFileToOtherNode = catchAsync(async (req, res, next) => {
+exports.sendVideoForReplication = catchAsync(async (req, res, next) => {
   console.log('replicate folder controller');
   const filename = req.body.filename || 'World Domination How-ToHls';
   const videoFolderPath = 'videos/' + filename + '/';
@@ -462,7 +462,7 @@ exports.SendFolderFileToOtherNode = catchAsync(async (req, res, next) => {
   return;
 });
 
-exports.ReceiveFolderFileFromOtherNode = catchAsync(async (req, res, next) => {
+exports.receiveReplicateDashVideo = catchAsync(async (req, res, next) => {
   let destination = req.file.destination;
   res.status(200).json({
     message: 'success receive folder files',

@@ -16,15 +16,15 @@ fluentFfmpeg.setFfmpegPath(ffmpegPath);
 const { setTimeout } = require('timers/promises');
 const { CONSTANTS } = require('../constants/constants');
 
-async function concater(arrayChunkName, destination, filename, ext) {
-  arrayChunkName.forEach((chunkName) => {
+async function concater(chunkNames, destination, filename, ext) {
+  chunkNames.forEach((chunkName) => {
     const data = fs.readFileSync('./' + destination + chunkName);
     fs.appendFileSync('./' + destination + filename + '.' + ext, data);
   });
 }
 
-async function concaterServer(arrayChunkName, destination, originalname) {
-  arrayChunkName.forEach((chunkName) => {
+async function concaterServer(chunkNames, destination, originalname) {
+  chunkNames.forEach((chunkName) => {
     try {
       const data = fs.readFileSync('./' + destination + chunkName);
       fs.appendFileSync('./' + destination + originalname, data);
@@ -34,8 +34,8 @@ async function concaterServer(arrayChunkName, destination, originalname) {
     }
   });
 }
-exports.CheckFileBeforeReceive = catchAsync(async (req, res, next) => {
-  console.log('uploadController.CheckFileBeforeReceive -> ');
+exports.checkFileOnReceiving = catchAsync(async (req, res, next) => {
+  console.log('uploadController.checkFileOnReceiving -> ');
   const videoPath = 'videos/' + req.body.filename;
   if (fs.existsSync(videoPath)) {
     res.status(200).json({
@@ -49,7 +49,7 @@ exports.CheckFileBeforeReceive = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.CheckFolderBeforeReceive = catchAsync(async (req, res, next) => {
+exports.checkFolderOnReceiving = catchAsync(async (req, res, next) => {
   console.log('check folder before receive');
   const videoPath = 'videos/' + req.body.filename;
   if (fs.existsSync(videoPath)) {
@@ -64,23 +64,22 @@ exports.CheckFolderBeforeReceive = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.ReceiveFileFromOtherNode = catchAsync(async (req, res, next) => {
-  console.log('uploadController.ReceiveFileFromOtherNode -> ');
-  let arrayChunkName = req.body.arraychunkname;
+exports.receiveVideoFile = catchAsync(async (req, res, next) => {
+  console.log('uploadController.receiveVideoFile -> ');
+  let chunkNames = req.body.chunkNames;
   let destination = req.file.destination;
   let flag = true;
-  arrayChunkName.forEach((chunkName) => {
+  chunkNames.forEach((chunkName) => {
     if (!fs.existsSync(destination + chunkName)) {
       flag = false;
     }
   });
   if (flag) {
     console.log('Enough for concate');
-    let arrayChunkName = req.body.arraychunkname;
-    const originalname = req.body.filename;
-    const statusID = req.body.statusID;
-    encodeAPI.concaterServer(arrayChunkName, destination, originalname);
-    encodeAPI.encodeIntoDashVer4(destination, originalname, statusID);
+    const originalname = req.body.chunkname;
+    const statusId = req.body.statusId;
+    encodeAPI.concaterServer(chunkNames, destination, originalname);
+    encodeAPI.encodeIntoDashVer4(destination, originalname, statusId);
     res.status(201).json({
       message: CONSTANTS.SUCCESS_CONCATE_AND_CONVERTED_MESSAGE,
     });

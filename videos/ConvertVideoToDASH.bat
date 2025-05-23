@@ -19,6 +19,7 @@ echo Folder already exists!
  -c:v libx264 ^
  -c:a aac -b:a 128k ^
  -bf 1 -b_strategy 0 -sc_threshold 0 -pix_fmt yuv420p -preset faster -threads 3 ^
+ -g 120 -keyint_min 120 -force_key_frames "expr:gte(t,n_forced*3)" ^
  -map 0:v:0 -map 0:a:0 -map 0:v:0 -map 0:a:0 -map 0:v:0 -map 0:a:0 ^
  -b:v:0 300k  -s:v:0 720x480 -profile:v:0 baseline ^
  -b:v:1 700k  -s:v:1 1080x720 -profile:v:1 main ^

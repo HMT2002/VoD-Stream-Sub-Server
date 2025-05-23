@@ -283,7 +283,6 @@ exports.M4SHandler = catchAsync(async (req, res, next) => {
     console.log('m4s is exist');
     const stream = fs.createReadStream('./' + req.url);
     // res.writeHead(206);
-    // Không nên để m4s header status code là 206 vì có thể không chơi được trên VLC hoặc mpv trên android
     res.setHeader('Content-Type', 'video/iso.segment');
     res.statusCode = 200;
     stream.pipe(res);
@@ -865,10 +864,10 @@ exports.UploadNewFileLargeMultilpart = catchAsync(async (req, res, next) => {
   const destination = req.file.destination;
   console.log(destination);
   //const fileExtension = path.extname(req.file.path);
-  let arrayChunkName = req.body.arraychunkname.split(',');
-  console.log(arrayChunkName);
+  let chunkNames = req.body.chunknames.split(',');
+  console.log(chunkNames);
   let flag = true;
-  arrayChunkName.forEach((chunkName) => {
+  chunkNames.forEach((chunkName) => {
     if (!fs.existsSync(destination + chunkName)) {
       flag = false;
     }
@@ -897,12 +896,12 @@ exports.UploadNewFileLargeMultilpart = catchAsync(async (req, res, next) => {
 exports.UploadNewFileLargeMultilpartConcatenate = catchAsync(async (req, res, next) => {
   console.log(req.body);
   console.log(req.headers);
-  let arrayChunkName = req.body.arraychunkname;
+  let chunkNames = req.body.chunknames;
   let filename = req.body.filename;
   let ext = req.body.ext;
   let destination = req.body.destination;
   console.log('file is completed, begin concat');
-  arrayChunkName.forEach((chunkName) => {
+  chunkNames.forEach((chunkName) => {
     console.log(chunkName);
     console.log('begin append');
     console.log(destination);

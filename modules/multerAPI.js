@@ -26,6 +26,7 @@ const storageVideo = multer.diskStorage({
 const storageChunk = multer.diskStorage({
   destination: videoStoragePath,
   filename: (req, file, cb) => {
+    console.log('req.headers.chunkname: ' + req.headers.chunkname);
     cb(null, req.headers.chunkname);
   },
 });
@@ -102,12 +103,12 @@ const uploadMultipartFile = multer({
 const uploadMultipartFileChunk = multer({
   storage: storageChunk,
   limits: { fileSize: multipartMaxSize },
-}).single('myMultilPartFileChunk');
+}).single('multipartFileChunk');
 
 const uploadMultipartFileChunkV2 = multer({
   storage: storageChunkV2,
   limits: { fileSize: multipartMaxSize },
-}).single('myMultilPartFileChunk');
+}).single('multipartFileChunk');
 
 const uploadFolderFile = multer({
   storage: storageFolderFile,
