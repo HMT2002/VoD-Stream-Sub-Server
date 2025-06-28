@@ -46,8 +46,8 @@ exports.CheckHlsFile = catchAsync(async (req, res, next) => {
 
 exports.CheckDashFile = catchAsync(async (req, res, next) => {
   const filename = req.params.filename || 'largetest5';
-  const videoPath = 'videos/' + filename + 'Dash/init.mpd';
-  const dir = 'videos/' + filename + 'Dash';
+  const videoPath = 'videos/' + filename + '/init.mpd';
+  const dir = 'videos/' + filename;
   console.log(dir);
 
   // console.log(fileList);

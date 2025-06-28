@@ -14,6 +14,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 fluentFfmpeg.setFfmpegPath(ffmpegPath);
 const { CONSTANTS } = require('../constants/constants');
+const Video = require('../models/mongo/Video');
+const Server = require('../models/mongo/Server');
 
 async function concater(chunkNames, destination, filename, ext) {
   chunkNames.forEach((chunkName) => {
@@ -450,6 +452,69 @@ exports.sendVideoForReplication = catchAsync(async (req, res, next) => {
     const { data } = await axios({
       method: 'post',
       url: 'http://' + url + port + CONSTANTS.SUB_SERVER_REPLICATE_API + '/receive-folder',
+      data: form,
+      headers: { ...form.getHeaders(), filename: fileList[i], folder: filename },
+    });
+    console.log(data);
+  }
+  res.status(200).json({
+    message: 'Folder sent!',
+    videoFolderPath,
+  });
+  return;
+});
+exports.sendVideoForReplicationV2 = catchAsync(async (req, res, next) => {
+  console.log('replicate folder controller V2');
+  console.log(req.body);
+  const videoId = req.body.videoId;
+  const video = await Video.findById(videoId);
+  const filename = video.videoname;
+  const videoFolderPath = 'videos/' + filename;
+  const serverId = req.body.serverId || '';
+  const destinationServer = await Server.findById(serverId);
+  const baseUrl =
+    'http://' + destinationServer.URL + destinationServer.port + CONSTANTS.SUB_SERVER_CHECK_API + '/file/' + filename;
+  console.log(baseUrl);
+  const { data: check } = await axios.get(baseUrl);
+  console.log(check);
+  if (check.existed === true) {
+    console.log('check not existed ' + check.existed + '|||| baseUrl');
+
+    res.status(200).json({
+      message: 'Folder already existed on sub server',
+      check,
+    });
+    return;
+  }
+
+  if (!fs.existsSync(videoFolderPath)) {
+    console.log('not found path ' + videoFolderPath);
+    res.status(200).json({
+      message: 'Folder not found',
+      path: videoFolderPath,
+    });
+    return;
+  }
+  console.log('File found!: ' + videoFolderPath);
+  const dir = 'videos/' + filename;
+  console.log(dir);
+  const fileList = fs.readdirSync(dir);
+  console.log(fileList);
+  for (let i = 0; i < fileList.length; i++) {
+    const filePath = videoFolderPath + '/' + fileList[i];
+    console.log(filePath);
+    console.log(fs.existsSync(filePath));
+    const readStream = fs.createReadStream(filePath);
+    var form = new FormData();
+    form.append('myFolderFile', readStream);
+    const { data } = await axios({
+      method: 'post',
+      url:
+        'http://' +
+        destinationServer.URL +
+        destinationServer.port +
+        CONSTANTS.SUB_SERVER_REPLICATE_API +
+        '/receive-folder',
       data: form,
       headers: { ...form.getHeaders(), filename: fileList[i], folder: filename },
     });

@@ -46,6 +46,8 @@ router
   .route('/receive-folder')
   .post(replicateController.checkFolderOnReceiving, uploadFolderFile, replicateController.receiveReplicateDashVideo);
 router.route('/send-folder').post(replicateController.sendVideoForReplication);
+router.route('/send-folder-v2').post(replicateController.sendVideoForReplicationV2);
+
 //#endregion
 
 router

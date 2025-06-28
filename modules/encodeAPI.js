@@ -56,6 +56,7 @@ const encodeCommand = (index, filePath, outputFolder, outputResult) => {
         outputResult;
       break;
     case 1:
+    default:
       encodeCmd =
         'ffmpeg -ss 10 -i ' +
         filePath +
@@ -117,7 +118,33 @@ const encodeCommand = (index, filePath, outputFolder, outputResult) => {
         ' -f dash ' +
         outputResult;
       break;
-    default:
+    case 3:
+      encodeCmd =
+        'ffmpeg -ss 10 -i ' +
+        filePath +
+        ' -qscale:v 2 -frames:v 1 ' +
+        outputFolder +
+        '/thumbnail.png ' +
+        ' | ' +
+        'ffmpeg -i ' +
+        filePath +
+        ' -c:v libx264 -c:a aac ' +
+        ' -b:a 128k ' +
+        ' -preset medium ' +
+        ' -crf 23' +
+        ' -pix_fmt yuv420p' +
+        ' -threads 0 ' +
+        ' -g 120 -keyint_min 120' +
+        ' -force_key_frames "expr:gte(t,n_forced*3)" ' +
+        ' -use_timeline 1' +
+        ' -single_file 0' +
+        ' -use_template 1' +
+        ' -seg_duration 10' +
+        ' -adaptation_sets "id=0,streams=v id=1,streams=a"' +
+        ' -init_seg_name init_$RepresentationID$.m4s' +
+        ' -media_seg_name chunk_$RepresentationID$_$Number%05d$.m4s' +
+        ' -f dash ' +
+        outputResult;
       break;
   }
   return encodeCmd;
@@ -219,14 +246,14 @@ const encodeIntoDash = async (destination, originalname) => {
     .run();
 };
 
-const encodeIntoDashVer4 = async (destination, originalname, statusId) => {
-  console.log('encodeAPI.encodeIntoDashVer4 -> ');
+const encodeIntoDashVer4 = async (destination, originalname, statusID) => {
+  console.log('encodeAPI.encodeIntoDashVer2 -> ');
   console.log({ destination, originalname });
   const filePath = destination + originalname;
   const filenameWithoutExt = originalname.split('.')[0];
-  const outputFolder = destination + filenameWithoutExt + 'Dash';
+  const outputFolder = destination + filenameWithoutExt;
   const outputResult = outputFolder + '/init.mpd';
-  const videoStatus = await VideoStatus.findById(statusId);
+  const videoStatus = await VideoStatus.findById(statusID);
   fs.access(outputFolder, (error) => {
     if (error) {
       fs.mkdir(outputFolder, (error) => {
@@ -245,7 +272,7 @@ const encodeIntoDashVer4 = async (destination, originalname, statusId) => {
   let encodeDuration = 0;
   let videoDuration = 0;
 
-  let commandCombine = encodeCommand(1, filePath, outputFolder, outputResult);
+  let commandCombine = encodeCommand(Number(process.env.ENCODE_TYPE), filePath, outputFolder, outputResult);
 
   console.log(commandCombine);
 
@@ -321,7 +348,7 @@ const encodeIntoDash_test = async (videoname) => {
   console.log({ videoname });
   const filePath = videoname;
   const filenameWithoutExt = videoname.split('.')[0];
-  const outputFolder = filenameWithoutExt + 'Dash';
+  const outputFolder = filenameWithoutExt;
   const outputResult = outputFolder + '/init.mpd';
   fs.access(outputFolder, (error) => {
     if (error) {
